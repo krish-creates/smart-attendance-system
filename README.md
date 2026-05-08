@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎓 AI Smart Attendance System
 
 An end-to-end, AI-powered attendance management system built with Python, Flask, OpenCV, and `face_recognition`. This system allows teachers to register students by capturing their biometric face data via webcam, start attendance sessions, automatically recognize faces in real-time, and generate attendance reports.
@@ -107,3 +108,6 @@ Change `app.run(debug=True)` to `app.run(debug=True, port=5001)`. Then access th
 ### 5. `ModuleNotFoundError: No module named 'flask'`
 **Error**: Python can't find the libraries.
 **Solution**: You forgot to activate your environment. Run `conda activate attendance` and try again.
+=======
+# Smart-Attendance-System
+>>>>>>> 7664bce94c4e1de50da5def6bc74498c8ab7240b

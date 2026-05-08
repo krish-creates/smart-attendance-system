@@ -1,0 +1,25 @@
+# -------------------------------------------------------
+# AI Smart Attendance System — Python Dependencies
+# Environment: conda  →  attendance  (Python 3.10)
+# -------------------------------------------------------
+
+# Web framework
+flask==3.1.3
+
+# Computer vision (webcam, image processing)
+opencv-python==4.13.0.92
+
+# Face detection and recognition (requires dlib)
+face_recognition==1.3.0
+
+# Numerical computing (face encoding arrays)
+numpy==2.2.6
+
+# Image utilities
+pillow==12.2.0
+
+# -------------------------------------------------------
+# NOTE: Do NOT install dlib via pip.
+# dlib is already installed via conda-forge:
+#   conda install -c conda-forge dlib
+# -------------------------------------------------------

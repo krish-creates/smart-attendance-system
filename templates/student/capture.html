@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Face Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118',
+                        card: '#131824',
+                        secondary: '#1a2235',
+                        primary: '#4ed4e6',
+                        success: '#34d399',
+                        warning: '#fbbf24',
+                        destructive: '#f87171',
+                        border: '#242e42',
+                        muted: '#64748b',
+                        foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(19, 24, 36, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(36, 46, 66, 0.4);
+        }
+        #canvas { display: none; } /* Hidden canvas for grabbing frames */
+        
+        /* Smooth progress circle transition */
+        #progressRing {
+            transition: stroke-dashoffset 0.3s ease-out, stroke 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8 flex items-center justify-center">
+
+    <div class="max-w-5xl w-full space-y-6">
+        
+        <div class="text-center space-y-2 mb-8">
+            <h1 class="text-3xl font-bold flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                Biometric Registration
+            </h1>
+            <p class="text-muted">Enroll your facial profile into the secure database</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="space-y-4">
+                <div class="glass-card rounded-xl border-border overflow-hidden p-2">
+                    <div class="relative aspect-square md:aspect-[4/3] bg-black rounded-lg overflow-hidden flex items-center justify-center border border-border">
+                        
+                        <div class="absolute inset-0 opacity-20 pointer-events-none z-10" style="background-image: linear-gradient(rgba(0,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                        
+                        <div class="absolute inset-8 border-2 border-primary/30 rounded-lg pointer-events-none z-20">
+                            <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg"></div>
+                            <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg"></div>
+                            <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg"></div>
+                            <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg"></div>
+                        </div>
+
+                        <video id="videoBox" autoplay playsinline class="w-full h-full object-cover relative z-0 scale-x-[-1]"></video>
+                        <canvas id="canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl border-border p-4 min-h-[100px]">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Captured Encoded Frames</p>
+                    <div id="capturedGrid" class="flex flex-wrap gap-2">
+                        </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                
+                <div class="glass-card rounded-xl border-primary/30 bg-primary/5 p-6 border">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xl font-bold border border-primary/30">
+                            {{ student['name'][0] }}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-foreground">{{ student['name'] }}</h3>
+                            <p class="text-sm text-primary font-mono">{{ student['register_no'] }}</p>
+                        </div>
+                    </div>
+                    <div class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-secondary text-muted-foreground border border-border">
+                        Department: {{ student['class_name'] }}
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl border-border p-6 space-y-4">
+                    <h4 class="font-semibold text-foreground flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                        Capture Requirements
+                    </h4>
+                    <ul class="text-sm text-muted space-y-2 list-disc list-inside ml-1">
+                        <li>Ensure your face is clearly visible and well-lit.</li>
+                        <li>Remove glasses, masks, or heavy accessories.</li>
+                        <li>Look directly into the camera lens.</li>
+                        <li>The system will auto-capture 20 precise frames.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-xl border-border p-6 flex flex-col items-center">
+                    
+                    <div class="relative mb-6" style="width: 140px; height: 140px;">
+                        <svg class="transform -rotate-90 w-full h-full">
+                            <circle cx="70" cy="70" r="60" fill="none" stroke="currentColor" stroke-width="8" class="text-secondary"></circle>
+                            <circle id="progressRing" cx="70" cy="70" r="60" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" 
+                                    stroke-dasharray="377" stroke-dashoffset="377" 
+                                    class="text-primary"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="captureCount" class="text-2xl font-bold text-foreground">0/20</span>
+                            <span class="text-[10px] uppercase tracking-wider text-muted mt-1">Frames</span>
+                        </div>
+                    </div>
+
+                    <div id="statusBox" class="w-full text-center p-3 rounded-lg bg-secondary/50 border border-border text-sm mb-6 transition-colors">
+                        Camera ready. Click start to begin enrollment.
+                    </div>
+
+                    <button id="startBtn" onclick="startCapture()" class="w-full bg-primary hover:bg-primary/90 text-background font-semibold h-12 px-8 rounded-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Start Auto-Capture
+                    </button>
+                    
+                    <a href="{{ url_for('auth.login') }}" id="doneBtn" class="w-full bg-success hover:bg-success/90 text-background font-semibold h-12 px-8 rounded-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] hidden mt-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Registration Complete
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <span id="studentId" data-id="{{ student['id'] }}" style="display:none;"></span>
+
+    <script>
+        const STUDENT_ID   = document.getElementById('studentId').dataset.id;
+        const TOTAL_NEEDED = 20;
+
+        let capturedCount  = 0;
+        let capturing      = false;
+        let captureTimer   = null;
+
+        const video          = document.getElementById('videoBox');
+        const canvas         = document.getElementById('canvas');
+        const statusBox      = document.getElementById('statusBox');
+        const captureCountEl = document.getElementById('captureCount');
+        const progressRing   = document.getElementById('progressRing');
+        const capturedGrid   = document.getElementById('capturedGrid');
+        const startBtn       = document.getElementById('startBtn');
+        const doneBtn        = document.getElementById('doneBtn');
+
+        // Circumference of the SVG circle (2 * Math.PI * 60)
+        const circumference = 377;
+
+        // 1. Initialize Camera
+        window.onload = function () {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    statusBox.className = 'w-full text-center p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 text-sm mb-6';
+                    statusBox.innerHTML = '<strong>Camera Error:</strong> ' + err.message;
+                    startBtn.disabled = true;
+                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                });
+        };
+
+        // 2. Start Process
+        function startCapture() {
+            if (capturing) return;
+            capturing = true;
+
+            startBtn.classList.add('hidden');
+            statusBox.className = 'w-full text-center p-3 rounded-lg bg-warning/10 text-warning border border-warning/30 text-sm mb-6';
+            statusBox.textContent = 'Scanning... Please look directly at the camera.';
+
+            captureTimer = setInterval(captureOneImage, 1200);
+        }
+
+        // 3. Frame Grabbing
+        function captureOneImage() {
+            if (capturedCount >= TOTAL_NEEDED) {
+                clearInterval(captureTimer);
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            // Draw standard (not flipped) image to canvas for encoding
+            ctx.drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
+
+            // Fetch to the new blueprint route
+            fetch('/student/save_face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id:  STUDENT_ID,
+                    image:       imageData,
+                    image_index: capturedCount + 1
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    capturedCount++;
+                    updateProgress();
+
+                    // Add beautiful thumbnail
+                    const img = document.createElement('img');
+                    img.src = imageData;
+                    img.className = 'w-12 h-12 object-cover rounded-md border border-primary/50 opacity-0 transition-opacity duration-500 scale-x-[-1]';
+                    capturedGrid.appendChild(img);
+                    
+                    // Fade in effect
+                    setTimeout(() => { img.classList.remove('opacity-0'); }, 50);
+
+                    if (capturedCount >= TOTAL_NEEDED) {
+                        finishCapture();
+                    } else {
+                        statusBox.textContent = `Encoded Frame [${capturedCount}/${TOTAL_NEEDED}]...`;
+                    }
+
+                } else if (data.status === 'no_face') {
+                    statusBox.className = 'w-full text-center p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 text-sm mb-6';
+                    statusBox.textContent = 'No face detected. Adjust your position.';
+                } else {
+                    statusBox.textContent = 'Error: ' + data.message;
+                }
+            })
+            .catch(err => console.error(err));
+        }
+
+        // 4. Update UI
+        function updateProgress() {
+            captureCountEl.textContent = `${capturedCount}/${TOTAL_NEEDED}`;
+            const pct = capturedCount / TOTAL_NEEDED;
+            const offset = circumference - (pct * circumference);
+            
+            // Turn ring green when done
+            if(pct === 1) {
+                progressRing.classList.remove('text-primary');
+                progressRing.classList.add('text-success');
+            }
+            
+            progressRing.style.strokeDashoffset = offset;
+        }
+
+        function finishCapture() {
+            clearInterval(captureTimer);
+            capturing = false;
+            
+            // Stop camera hardware
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+
+            statusBox.className = 'w-full text-center p-3 rounded-lg bg-success/10 text-success border border-success/30 text-sm mb-6';
+            statusBox.innerHTML = '<strong>Success:</strong> Facial profile encoded and locked.';
+            
+            doneBtn.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

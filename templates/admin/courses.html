@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Manage Courses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118', card: '#131824', secondary: '#1a2235',
+                        primary: '#4ed4e6', success: '#34d399', warning: '#fbbf24',
+                        destructive: '#f87171', border: '#242e42', muted: '#64748b', foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(19, 24, 36, 0.6); backdrop-filter: blur(24px); border: 1px solid rgba(36, 46, 66, 0.4); }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+            <h1 class="text-3xl font-bold text-foreground">Course Architecture</h1>
+            <p class="text-muted mt-1">Map subjects to faculty, enroll sections, and manage active courses</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="w-full p-4 mb-6 rounded-lg text-sm {% if category == 'error' %}bg-destructive/10 border-destructive/30 text-destructive{% else %}bg-success/10 border-success/30 text-success{% endif %} border flex items-center gap-2">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="glass-card rounded-xl border-border p-6 h-fit lg:sticky lg:top-8">
+                <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    New Course Mapping
+                </h2>
+
+                <form action="{{ url_for('admin.manage_courses') }}" method="POST" class="space-y-4">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium uppercase tracking-wider text-muted">Course Code</label>
+                            <input type="text" name="course_code" required placeholder="e.g. CS101"
+                                class="w-full bg-secondary text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono text-primary">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-medium uppercase tracking-wider text-muted">Total Classes</label>
+                            <input type="number" name="total_classes" required placeholder="e.g. 45" min="1"
+                                class="w-full bg-secondary text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium uppercase tracking-wider text-muted">Course Title</label>
+                        <input type="text" name="course_name" required placeholder="e.g. Intro to Programming"
+                            class="w-full bg-secondary text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium uppercase tracking-wider text-muted">Assign Faculty</label>
+                        <select name="faculty_id" required class="w-full bg-secondary text-foreground border border-border rounded-md h-[38px] px-3 text-sm focus:outline-none focus:border-primary cursor-pointer">
+                            <option value="" disabled selected>Select Faculty...</option>
+                            {% for fac in faculties %}
+                                <option value="{{ fac.id }}">{{ fac.name }} ({{ fac.identifier }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium uppercase tracking-wider text-muted">Target Section / Class</label>
+                        <input type="text" name="target_section" required placeholder="e.g. MCA-A or Semester 1"
+                            class="w-full bg-secondary text-foreground border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        <p class="text-[10px] text-muted mt-1">Must exactly match the class name used when enrolling students.</p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-background font-semibold h-10 rounded-md mt-6 transition-all transform hover:scale-[1.01] active:scale-[0.99]">
+                        Create Mapping
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 space-y-4">
+                
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Active Course Roster
+                    </h2>
+                    <span class="text-xs font-mono bg-secondary px-2 py-1 rounded text-muted border border-border">{{ courses|length }} Mappings Active</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for course in courses %}
+                    <div class="glass-card rounded-xl border-border p-5 hover:border-primary/50 transition-colors group flex flex-col justify-between relative">
+                        
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                                    {{ course.code }}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-xs text-muted bg-secondary/50 px-2 py-0.5 rounded border border-border">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                                    {{ course.total_classes }}
+                                </span>
+                            </div>
+                            
+                            <form action="{{ url_for('admin.delete_course', course_id=course.id) }}" method="POST">
+                                <button type="submit" onclick="return confirm('Are you sure you want to permanently delete {{ course.code }} and wipe all its attendance logs?')" 
+                                        class="text-muted hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-all cursor-pointer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <h3 class="font-bold text-foreground text-lg leading-tight mb-1 group-hover:text-primary transition-colors pr-6">{{ course.name }}</h3>
+                        
+                        <div class="space-y-1.5 mt-4 border-t border-border/50 pt-4">
+                            <p class="text-sm text-muted flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                                {% for fac in faculties %}
+                                    {% if fac.id == course.faculty_id %}
+                                        {{ fac.name }}
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                            <p class="text-sm text-muted flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                Target: <strong class="text-foreground font-medium">{{ course.target_section }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                    {% else %}
+                        <div class="col-span-1 md:col-span-2 glass-card rounded-xl border-dashed border-border p-12 text-center flex flex-col items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                            <p class="text-muted font-medium">No courses mapped yet.</p>
+                            <p class="text-xs text-muted/70 mt-1">Use the panel on the left to create your first course architecture.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>

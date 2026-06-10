@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Course Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: {
+                background: '#0e1118', card: '#131824', secondary: '#1a2235',
+                primary: '#4ed4e6', success: '#34d399', warning: '#fbbf24',
+                destructive: '#f87171', border: '#242e42', muted: '#64748b', foreground: '#f8fafc',
+            }}}
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(19, 24, 36, 0.6); backdrop-filter: blur(24px); border: 1px solid rgba(36, 46, 66, 0.4); }
+        #progressRing { transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease, filter 0.4s ease; }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <div>
+            <a href="{{ url_for('student.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+            <h1 class="text-2xl md:text-3xl font-bold text-foreground">{{ course.name }}</h1>
+            <p class="text-primary font-mono mt-1">{{ course.code }}</p>
+        </div>
+
+        <div class="glass-card rounded-xl border-border p-8">
+            <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                What-If Attendance Predictor
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                
+                <div class="flex flex-col items-center justify-center">
+                    <div class="relative" style="width: 200px; height: 200px;">
+                        <svg class="transform -rotate-90 w-full h-full">
+                            <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="14" class="text-secondary"></circle>
+                            <circle id="progressRing" cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" 
+                                    stroke-dasharray="565.48" stroke-dashoffset="0" 
+                                    class="text-success" style="filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.4));"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="displayPercentage" class="text-5xl font-bold text-foreground">0%</span>
+                            <span id="displayStatus" class="text-xs uppercase tracking-wider text-success font-semibold mt-1">Safe</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center text-sm font-mono text-muted bg-secondary/30 px-4 py-2 rounded-lg border border-border">
+                        <p id="baseInfo">Loading stats...</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        
+                        <div class="flex flex-col items-center space-y-3 bg-success/5 p-4 rounded-xl border border-success/20">
+                            <h3 class="font-semibold text-success tracking-wide uppercase text-sm">Attend</h3>
+                            <button onclick="addAttend()" class="w-full bg-success/20 hover:bg-success/30 text-success rounded-lg py-3 flex items-center justify-center transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            </button>
+                            <button onclick="subAttend()" class="w-full bg-success/10 hover:bg-success/20 text-success/80 rounded-lg py-2 flex items-center justify-center transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col items-center space-y-3 bg-destructive/5 p-4 rounded-xl border border-destructive/20">
+                            <h3 class="font-semibold text-destructive tracking-wide uppercase text-sm">Not Attend</h3>
+                            <button onclick="addSkip()" class="w-full bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg py-3 flex items-center justify-center transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            </button>
+                            <button onclick="subSkip()" class="w-full bg-destructive/10 hover:bg-destructive/20 text-destructive/80 rounded-lg py-2 flex items-center justify-center transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div class="text-center bg-secondary/40 rounded-lg p-3 border border-border">
+                        <p class="text-sm font-medium text-foreground">
+                            Remaining: <span id="textRemaining" class="text-primary mr-2">0</span> 
+                            Attended: <span id="textSimAttend" class="text-success mr-2"></span> 
+                            Not Attended: <span id="textSimSkip" class="text-destructive">0</span>
+                        </p>
+                    </div>
+
+                    <button onclick="resetSim()" class="w-full py-3 rounded-lg border border-border text-muted hover:text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-2 text-sm font-semibold">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        Reset Simulator
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl border-border overflow-hidden">
+            <div class="p-6 border-b border-border bg-secondary/20">
+                <h3 class="font-semibold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Attendance Log
+                </h3>
+            </div>
+            <div class="divide-y divide-border">
+                {% for log in history %}
+                <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-secondary/10 transition-colors">
+                    <div>
+                        <p class="font-mono text-sm text-foreground mb-1">{{ log.time }}</p>
+                        <p class="text-xs text-muted">{{ log.type }}</p>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
+                        <span class="text-sm text-muted font-mono">{{ log.date }}</span>
+                        {% if log.status == 'Present' %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-success/10 text-success border border-success/30 w-24 justify-center">Present</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/30 w-24 justify-center">Absent</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-muted italic text-sm">No classes have been logged yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const BASE_ATTENDED = {{ course.attended }};
+        const BASE_CONDUCTED = {{ course.conducted }};
+        const BASE_REMAINING = {{ course.remaining }};
+        const SEMESTER_TOTAL = {{ course.semester_total }};
+        const CIRCUMFERENCE = 565.48; 
+
+        // Simulation Variables
+        let simAttend = 0;
+        let simSkip = 0;
+
+        function updateUI() {
+            const currentRemaining = BASE_REMAINING - simAttend - simSkip;
+            const newAttended = BASE_ATTENDED + simAttend;
+            const newConducted = BASE_CONDUCTED + simAttend + simSkip;
+            
+            const rawPercent = newConducted === 0 ? 100 : (newAttended / newConducted) * 100;
+            const newPercent = Math.round(rawPercent);
+
+            // Update Text
+            document.getElementById('displayPercentage').textContent = newPercent + '%';
+            
+            // THE FIX: Prevent negative numbers by displaying "N/A" if the Admin forgot to set the total
+            document.getElementById('textRemaining').textContent = SEMESTER_TOTAL === 0 ? "N/A" : Math.max(0, currentRemaining);
+            
+            document.getElementById('textSimAttend').textContent = simAttend;
+            document.getElementById('textSimSkip').textContent = simSkip;
+            
+            // Also cleanly handle the "0" display in the base info box
+            const displayTotal = SEMESTER_TOTAL === 0 ? '?' : SEMESTER_TOTAL;
+            document.getElementById('baseInfo').textContent = `Conducted: ${newConducted} / ${displayTotal} | Attended: ${newAttended}`;
+
+            // Animate Ring
+            const ring = document.getElementById('progressRing');
+            const offset = CIRCUMFERENCE - ((rawPercent / 100) * CIRCUMFERENCE);
+            ring.style.strokeDashoffset = offset;
+
+            // Handle Colors
+            const txtStatus = document.getElementById('displayStatus');
+            ring.classList.remove('text-success', 'text-warning', 'text-destructive');
+            txtStatus.classList.remove('text-success', 'text-warning', 'text-destructive');
+            
+            if (newPercent >= 75) {
+                ring.classList.add('text-success');
+                ring.style.filter = 'drop-shadow(0 0 12px rgba(52, 211, 153, 0.4))';
+                txtStatus.textContent = 'Safe';
+                txtStatus.classList.add('text-success');
+            } else if (newPercent >= 70) {
+                ring.classList.add('text-warning');
+                ring.style.filter = 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.4))';
+                txtStatus.textContent = 'Warning';
+                txtStatus.classList.add('text-warning');
+            } else {
+                ring.classList.add('text-destructive');
+                ring.style.filter = 'drop-shadow(0 0 12px rgba(248, 113, 113, 0.4))';
+                txtStatus.textContent = 'Critical';
+                txtStatus.classList.add('text-destructive');
+            }
+        }
+
+        // Button Controls (Hard limited by Remaining classes!)
+       // Button Controls (Hard limited by Remaining classes, UNLESS total was set to 0 by mistake)
+       function addAttend() { 
+            if((simAttend + simSkip) < BASE_REMAINING || SEMESTER_TOTAL === 0) { 
+                simAttend++; updateUI(); 
+            } 
+        }
+        function subAttend() { 
+            if(simAttend > 0) { 
+                simAttend--; updateUI(); 
+            } 
+        }
+        function addSkip() { 
+            if((simAttend + simSkip) < BASE_REMAINING || SEMESTER_TOTAL === 0) { 
+                simSkip++; updateUI(); 
+            } 
+        }
+        function subSkip() { 
+            if(simSkip > 0) { 
+                simSkip--; updateUI(); 
+            } 
+        }
+        function resetSim() { 
+            simAttend = 0; simSkip = 0; updateUI(); 
+        }
+
+        // Initialize on load
+        updateUI();
+    </script>
+</body>
+</html>

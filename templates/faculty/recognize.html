@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Live Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { background: '#0e1118', card: '#131824', secondary: '#1a2235', primary: '#4ed4e6', success: '#34d399', destructive: '#f87171', border: '#242e42', muted: '#64748b', foreground: '#f8fafc', } } }
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(19, 24, 36, 0.6); backdrop-filter: blur(24px); border: 1px solid rgba(36, 46, 66, 0.4); }
+        .scanner-line { width: 100%; height: 2px; background: #4ed4e6; position: absolute; top: 0; left: 0; box-shadow: 0 0 10px #4ed4e6; animation: scan 3s infinite linear; display: none; }
+        @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen p-8">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        
+        <div class="flex items-center justify-between">
+            <div>
+                <a href="{{ url_for('faculty.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                    End Session & Return
+                </a>
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    Live Scanner: <span class="text-primary">{{ course.name }}</span>
+                </h1>
+                <p class="text-sm text-muted mt-1">Section: {{ course.target_section }} | Code: {{ course.code }}</p>
+            </div>
+            
+            <button id="toggleScanner" class="bg-primary hover:bg-primary/90 text-background px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12A10 10 0 1 1 22 12A10 10 0 1 1 2 12"/><path d="M12 8v4l3 3"/></svg>
+                <span id="btnText">Start Scanning</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 glass-card rounded-2xl border-border p-4 relative overflow-hidden">
+                <div class="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center">
+                    <video id="videoElement" autoplay playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video>
+                    <div id="scannerLine" class="scanner-line"></div>
+                    <canvas id="canvasElement" class="hidden"></canvas>
+                </div>
+                <div id="statusIndicator" class="absolute top-8 right-8 px-3 py-1 rounded-full text-xs font-bold bg-secondary border border-border text-muted flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-muted" id="statusDot"></div>
+                    <span id="statusText">System Idle</span>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl border-border p-6 flex flex-col h-[500px]">
+                <h3 class="font-bold text-lg border-b border-border pb-3 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Live Detections
+                </h3>
+                
+                <div id="logsContainer" class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                    <p class="text-sm text-muted italic text-center mt-10">Awaiting scanner activation...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const toggleBtn = document.getElementById('toggleScanner');
+        const btnText = document.getElementById('btnText');
+        const scannerLine = document.getElementById('scannerLine');
+        const logsContainer = document.getElementById('logsContainer');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        
+        const COURSE_ID = {{ course.id }}; 
+        let isScanning = false;
+        let scanInterval;
+
+        // Start webcam immediately
+        navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { alert("Camera access denied or unavailable."); });
+
+        toggleBtn.addEventListener('click', () => {
+            if (!isScanning) {
+                isScanning = true;
+                btnText.innerText = "Stop Scanner";
+                toggleBtn.classList.replace("bg-primary", "bg-destructive");
+                scannerLine.style.display = "block";
+                statusText.innerText = "Scanning Active";
+                statusDot.classList.replace("bg-muted", "bg-success");
+                statusDot.classList.add("animate-pulse");
+                logsContainer.innerHTML = ""; 
+                
+                // Fire the AI every 3 seconds
+                scanInterval = setInterval(captureAndSendFrame, 3000);
+            } else {
+                isScanning = false;
+                btnText.innerText = "Start Scanning";
+                toggleBtn.classList.replace("bg-destructive", "bg-primary");
+                scannerLine.style.display = "none";
+                statusText.innerText = "System Idle";
+                statusDot.classList.replace("bg-success", "bg-muted");
+                statusDot.classList.remove("animate-pulse");
+                clearInterval(scanInterval);
+            }
+        });
+
+        function captureAndSendFrame() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            fetch("{{ url_for('faculty.process_frame') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    course_id: COURSE_ID, 
+                    image: base64Image 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.recognized.length > 0) {
+                    data.recognized.forEach(studentStatus => {
+                        const isNew = studentStatus.includes("Marked:");
+                        const name = studentStatus.split(":")[1].trim();
+                        
+                        const logEntry = document.createElement("div");
+                        logEntry.className = `p-3 rounded-lg border text-sm font-medium flex justify-between items-center ${isNew ? 'bg-success/10 border-success/30 text-success' : 'bg-secondary border-border text-muted'}`;
+                        logEntry.innerHTML = `<span>${name}</span> <span class="text-xs ${isNew ? 'bg-success text-background' : 'bg-border text-muted'} px-2 py-1 rounded">${isNew ? 'Present' : 'Already Logged'}</span>`;
+                        
+                        logsContainer.prepend(logEntry);
+                    });
+                }
+            })
+            .catch(error => console.error('Error processing frame:', error));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Faculty Registry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118', card: '#131824', secondary: '#1a2235',
+                        primary: '#4ed4e6', border: '#242e42', muted: '#64748b', foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(19, 24, 36, 0.6); backdrop-filter: blur(24px); border: 1px solid rgba(36, 46, 66, 0.4); }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8 flex items-center justify-center">
+
+    <div class="max-w-2xl w-full space-y-8">
+        
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+            <h1 class="text-3xl font-bold text-foreground">Faculty Registry</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="w-full p-4 mt-4 rounded-lg text-sm {% if category == 'error' %}bg-destructive/10 border-destructive/30 text-destructive{% else %}bg-success/10 border-success/30 text-success{% endif %} border flex items-center gap-2">
+                        {% if category == 'error' %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                        {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+            <p class="text-muted mt-1">Onboard new academic staff to the system</p>
+        </div>
+
+        <div class="glass-card rounded-xl border-border p-8">
+            <form method="POST" action="{{ url_for('admin.register_faculty') }}" class="space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-muted">Full Name & Title <span class="text-primary">*</span></label>
+                        <input type="text" name="name" required placeholder="e.g. Dr. Alan Turing"
+                            class="w-full bg-secondary border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary transition-all">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-muted">Employee ID <span class="text-primary">*</span></label>
+                        <input type="text" name="employee_id" required placeholder="e.g. FAC-2049"
+                            class="w-full bg-secondary border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary transition-all font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-muted">Email Address <span class="text-primary">*</span></label>
+                        <input type="email" name="email" required placeholder="professor@university.edu"
+                            class="w-full bg-secondary border border-border rounded-md px-4 py-3 text-sm focus:outline-none focus:border-primary transition-all">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-muted">Primary Department</label>
+                        <select name="department" class="w-full bg-secondary border border-border rounded-md h-[46px] px-3 text-sm focus:outline-none focus:border-primary">
+                            <option value="" disabled selected>Select Department...</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Mathematics">Mathematics</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-background font-semibold h-12 rounded-md mt-4 transition-all flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                    Register Faculty Member
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

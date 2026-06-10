@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Attendance Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118',
+                        card: '#131824',
+                        secondary: '#1a2235',
+                        primary: '#4ed4e6', 
+                        success: '#34d399',
+                        warning: '#fbbf24',
+                        destructive: '#f87171',
+                        border: '#242e42',
+                        muted: '#64748b',
+                        foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(19, 24, 36, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(36, 46, 66, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+            <h1 class="text-3xl font-bold text-foreground">System Analytics & Reports</h1>
+            <p class="text-muted mt-1">Filter and view comprehensive attendance logs</p>
+        </div>
+
+        <div class="glass-card rounded-xl border-border p-6">
+            <form method="GET" action="{{ url_for('admin.report') }}" class="flex flex-col md:flex-row items-end gap-4">
+                
+                <div class="flex-1 w-full">
+                    <label class="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        Filter by Session
+                    </label>
+                    <div class="relative">
+                        <select name="session_id" class="w-full bg-secondary border border-border rounded-md h-10 px-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm transition-colors cursor-pointer text-foreground">
+                            <option value="">-- View All Sessions --</option>
+                            {% for ses in all_sessions %}
+                            <option value="{{ ses['id'] }}" {% if selected_session and selected_session|int == ses['id'] %}selected{% endif %}>
+                                {{ ses['session_date'] }} | {{ ses['class_name'] }} | {{ ses['subject_name'] }} ({{ ses['status'] }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full md:w-auto bg-primary hover:bg-primary/90 text-background font-semibold h-10 px-6 rounded-md flex items-center justify-center gap-2 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    Apply Filter
+                </button>
+
+                <a href="{{ url_for('admin.report') }}" class="w-full md:w-auto border border-border hover:bg-secondary text-foreground font-medium h-10 px-6 rounded-md flex items-center justify-center gap-2 transition-all">
+                    Clear
+                </a>
+            </form>
+        </div>
+
+        {% if records %}
+        <div class="flex items-center gap-2 text-sm">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M20 6 9 17l-5-5"/></svg>
+                {{ records|length }} Record(s) Found
+            </span>
+        </div>
+
+        <div class="glass-card rounded-xl border-border overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-secondary/50 text-muted uppercase text-xs font-semibold border-b border-border">
+                        <tr>
+                            <th class="px-6 py-4">#</th>
+                            <th class="px-6 py-4">Student Name</th>
+                            <th class="px-6 py-4">Register No</th>
+                            <th class="px-6 py-4">Class</th>
+                            <th class="px-6 py-4">Subject</th>
+                            <th class="px-6 py-4">Date</th>
+                            <th class="px-6 py-4">Marked Time</th>
+                            <th class="px-6 py-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        {% for row in records %}
+                        <tr class="hover:bg-secondary/30 transition-colors">
+                            <td class="px-6 py-4 text-muted">{{ loop.index }}</td>
+                            <td class="px-6 py-4 font-medium text-foreground">{{ row['name'] }}</td>
+                            <td class="px-6 py-4 font-mono text-muted">{{ row['register_no'] }}</td>
+                            <td class="px-6 py-4">{{ row['class_name'] }}</td>
+                            <td class="px-6 py-4">{{ row['subject_name'] }}</td>
+                            <td class="px-6 py-4">{{ row['session_date'] }}</td>
+                            <td class="px-6 py-4 font-mono text-muted">{{ row['marked_time'] }}</td>
+                            <td class="px-6 py-4">
+                                {% if row['status'] == 'present' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M20 6 9 17l-5-5"/></svg>
+                                        Present
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20 capitalize">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+                                        {{ row['status'] }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="glass-card rounded-xl border-border border-dashed p-16 flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <h3 class="text-xl font-medium text-foreground">No records found</h3>
+            <p class="text-muted mt-2 max-w-md">No attendance data matches your current filter. Start a new session or clear your filters to view logs.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>

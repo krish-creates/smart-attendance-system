@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Faculty Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118', card: '#131824', secondary: '#1a2235',
+                        primary: '#4ed4e6', success: '#34d399', destructive: '#f87171',
+                        border: '#242e42', muted: '#64748b', foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(19, 24, 36, 0.6); backdrop-filter: blur(24px); border: 1px solid rgba(36, 46, 66, 0.4); }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8">
+
+    <div class="max-w-[1400px] mx-auto space-y-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold">Faculty Dashboard</h1>
+                <p class="text-muted mt-1">Welcome back, Professor <strong class="text-primary">{{ session['name'] }}</strong></p>
+            </div>
+            <div class="text-right hidden md:flex flex-col items-end">
+                <p id="clock" class="text-2xl font-mono text-foreground">00:00:00</p>
+                <div class="flex items-center gap-3 mt-1">
+                    <p class="text-sm text-muted" id="dateDisplay">Loading date...</p>
+                    <span class="text-muted">•</span>
+                    <a href="{{ url_for('auth.logout') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 h-9 px-4 py-2 gap-2 transition-colors decoration-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="w-full p-4 rounded-lg text-sm {% if category == 'error' %}bg-destructive/10 border-destructive/30 text-destructive{% else %}bg-success/10 border-success/30 text-success{% endif %} border mb-4">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="glass-card rounded-xl border-border">
+            <div class="p-6">
+                <form id="startSessionForm" class="flex flex-col md:flex-row items-start md:items-end gap-4">
+                    
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-medium text-foreground mb-2">Your Assigned Courses: </label>
+                        
+                        <div class="relative">
+                            <select id="courseSelect" required class="w-full md:w-[500px] bg-secondary border border-border rounded-md h-12 px-4 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm transition-colors cursor-pointer text-foreground">
+                                <option value="" disabled selected>Choose a course to begin...</option>
+                                
+                                {% for course in courses %}
+                                    <option value="{{ url_for('faculty.scanner', course_id=course.id) }}">
+                                        {{ course.code }} - {{ course.name }} (Section: {{ course.target_section }})
+                                    </option>
+                                {% endfor %}
+
+                            </select>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full md:w-auto bg-primary hover:bg-primary/90 text-background font-semibold h-12 px-8 rounded-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                        Initialize Scanner
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-xl border-border border-dashed p-12 flex flex-col items-center justify-center text-center opacity-50 mt-8">
+            <div class="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4 shadow-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            </div>
+            <h3 class="text-lg font-medium text-foreground">Camera Offline</h3>
+            <p class="text-sm text-muted mt-1 max-w-sm">Select a course and initialize the session above to activate the live biometric scanner.</p>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString();
+            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        document.getElementById('startSessionForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Stop normal form submission
+            const select = document.getElementById('courseSelect');
+            if (select.value) {
+                window.location.href = select.value; 
+            }
+        });
+    </script>
+</body>
+</html>

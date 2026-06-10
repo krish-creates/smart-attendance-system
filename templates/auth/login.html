@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Gateway - Sign In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118',
+                        card: '#131824',
+                        primary: '#4ed4e6', // Cyber cyan matching your primary oklch tokens
+                        border: '#242e42',
+                        muted: '#64748b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Embedding your glassmorphism and custom animation definitions from global.css */
+        .glass-card {
+            background: rgba(19, 24, 36, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(36, 46, 66, 0.4);
+        }
+        .glow-effect {
+            box-shadow: 0 0 40px rgba(78, 212, 230, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-background text-white min-h-screen flex items-center justify-center p-4 selection:bg-primary selection:text-background">
+
+    <div class="w-full max-w-md space-y-8 relative z-10">
+        <div class="absolute -inset-4 bg-primary/10 rounded-3xl blur-3xl opacity-50 glow-effect -z-10"></div>
+
+        <div class="glass-card rounded-2xl p-8 shadow-2xl">
+            
+            <div class="text-center space-y-2 mb-8">
+                <div class="inline-flex items-center justify-center p-3 bg-primary/10 rounded-xl mb-2 text-primary border border-primary/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight">Biometric Attendance</h2>
+                <p class="text-sm text-muted"> Academic Verification Portal</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-3 mb-4 rounded-lg text-sm bg-red-900/40 border border-red-500/30 text-red-200">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+            <form action="{{ url_for('auth.login') }}" method="POST" class="space-y-6">
+                
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label for="username" class="text-xs font-semibold uppercase tracking-wider text-muted">user name</label>
+                    </div>
+                    <input type="text" id="username" name="username" required autocomplete="current-password"
+                        class="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted/60"
+                        placeholder="Enter your username">
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label for="password" class="text-xs font-semibold uppercase tracking-wider text-muted">Security Key</label>
+                    </div>
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        class="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted/60"
+                        placeholder="••••••••••••">
+                </div>
+
+                <button type="submit" 
+                    class="w-full bg-primary text-background font-semibold py-3 rounded-xl hover:bg-primary/90 transition-all transform hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background shadow-lg shadow-primary/20">
+                    Initiate Connection
+                </button>
+            </form>
+
+        </div>
+        <div class="mt-6 text-center">
+            <p class="text-sm text-muted">
+                First time here? 
+                <a href="{{ url_for('auth.signup') }}" class="text-primary hover:text-primary/80 font-medium transition-colors">Activate your account</a>
+            </p>
+        </div>
+
+        <p class="text-center text-xs text-muted/60">
+            Secure Biometric Core v2.4.0 • Distributed under MIT License
+        </p>
+    </div>
+
+</body>
+</html>

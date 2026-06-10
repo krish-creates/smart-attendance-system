@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan - Student Enrollment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0e1118',
+                        card: '#131824',
+                        secondary: '#1a2235',
+                        primary: '#4ed4e6',
+                        success: '#34d399',
+                        warning: '#fbbf24',
+                        destructive: '#f87171',
+                        border: '#242e42',
+                        muted: '#64748b',
+                        foreground: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(19, 24, 36, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(36, 46, 66, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen font-sans antialiased p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+            <h1 class="text-3xl font-bold text-foreground">Student Enrollment</h1>
+            <p class="text-muted mt-1">Register individual profiles or mass-import registry data</p>
+        </div>
+
+        {% if error %}
+        <div class="w-full p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                {{ error }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="w-full p-4 rounded-lg text-sm {% if category == 'error' %}bg-destructive/10 border-destructive/30 text-destructive{% else %}bg-success/10 border-success/30 text-success{% endif %} border mb-4">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="glass-card rounded-xl border-border p-6">
+                <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                    Single Profile Creation
+                </h2>
+
+                <form method="POST" action="{{ url_for('admin.register') }}" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-medium text-muted">Full Name <span class="text-destructive">*</span></label>
+                            <input type="text" name="name" required 
+                                class="w-full bg-secondary border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-medium text-muted">Register Number <span class="text-destructive">*</span></label>
+                            <input type="text" name="register_no" required placeholder="e.g. 24MCA001"
+                                class="w-full bg-secondary border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-muted">Email Address</label>
+                        <input type="email" name="email" placeholder="student@university.edu"
+                            class="w-full bg-secondary border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-medium text-muted">Department <span class="text-destructive">*</span></label>
+                            <div class="relative">
+                                <select name="department" required class="w-full bg-secondary border border-border rounded-md h-[42px] px-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm transition-colors cursor-pointer text-foreground">
+                                    <option value="" disabled selected>Select Dept...</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="MCA">MCA</option>
+                                    <option value="Data Science">Data Science</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-medium text-muted">Class/Section <span class="text-destructive">*</span></label>
+                            <input type="text" name="class_name" required placeholder="e.g. MCA-A"
+                                class="w-full bg-secondary border border-border rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-muted">Semester <span class="text-destructive">*</span></label>
+                        <div class="relative">
+                            <select name="semester" required class="w-full bg-secondary border border-border rounded-md h-[42px] px-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm transition-colors cursor-pointer text-foreground">
+                                <option value="" disabled selected>Select Semester...</option>
+                                {% for i in range(1, 9) %}
+                                <option value="Semester {{ i }}">Semester {{ i }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-background font-semibold h-12 px-8 rounded-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99] mt-6">
+                        Save & Proceed to Biometrics
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </button>
+                </form>
+            </div>
+
+            <div class="space-y-6">
+                
+                <div class="glass-card rounded-xl border-border p-6">
+                    <h2 class="text-xl font-semibold mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Mass Registry Import
+                    </h2>
+                    <p class="text-sm text-muted mb-6">Upload a `.csv` or `.xlsx` file containing multiple student records to bypass manual entry.</p>
+                    
+                    <form method="POST" action="{{ url_for('admin.bulk_register') }}" enctype="multipart/form-data" class="space-y-4">
+                        
+                        <div class="w-full h-40 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50 transition-colors relative cursor-pointer group">
+                            <input type="file" name="bulk_file" accept=".csv, .xlsx" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted group-hover:text-primary transition-colors mb-2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                            <p class="text-sm font-medium text-foreground">Click to upload or drag and drop</p>
+                            <p class="text-xs text-muted mt-1">CSV or Excel format</p>
+                        </div>
+
+                        <button type="submit" class="w-full border border-border hover:bg-secondary text-foreground font-semibold h-12 px-8 rounded-md flex items-center justify-center gap-2 transition-all">
+                            Process Registry File
+                        </button>
+                    </form>
+                </div>
+
+                <div class="glass-card rounded-xl border-border p-6 bg-secondary/10">
+                    <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                        Required File Format
+                    </h3>
+                    <p class="text-xs text-muted mb-3">Ensure your spreadsheet includes exactly these column headers in row 1:</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs font-mono">
+                            <thead class="bg-secondary text-muted border-b border-border">
+                                <tr>
+                                    <th class="px-3 py-2">name</th>
+                                    <th class="px-3 py-2">register_no</th>
+                                    <th class="px-3 py-2">email</th>
+                                    <th class="px-3 py-2">department</th>
+                                    <th class="px-3 py-2">class_name</th>
+                                    <th class="px-3 py-2">semester</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>

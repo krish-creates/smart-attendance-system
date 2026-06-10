@@ -30,7 +30,7 @@ with app.app_context():
     db.create_all()
     
     # --- THE ADMIN SEEDER ---
-    # Check if an admin already exists in the database
+    # Check if an admin already exists in  database
     admin_exists = User.query.filter_by(role='admin').first()
     
     if not admin_exists:

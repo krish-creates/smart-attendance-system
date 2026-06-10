@@ -6,7 +6,6 @@ import cv2
 import face_recognition
 
 student_bp = Blueprint('student', __name__, url_prefix='/student')
-
 @student_bp.route('/dashboard')
 def dashboard():
     # Ensure only logged-in students can view this page

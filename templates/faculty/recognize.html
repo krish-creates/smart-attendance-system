@@ -23,7 +23,9 @@
         
         <div class="flex items-center justify-between">
             <div>
-                <a href="{{ url_for('faculty.dashboard') }}" class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-2">
+                <a href="{{ url_for('faculty.end_session', course_id=course.id) }}" 
+                   onclick="return confirm('Are you sure you want to end the session? Anyone who has not scanned their face yet will be permanently marked ABSENT for today.')"
+                   class="inline-flex items-center text-sm font-medium text-muted hover:text-primary transition-colors mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
                     End Session & Return
                 </a>
@@ -46,8 +48,15 @@
                     <video id="videoElement" autoplay playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video>
                     <div id="scannerLine" class="scanner-line"></div>
                     <canvas id="canvasElement" class="hidden"></canvas>
+                    
+                    <div id="blinkWarning" class="absolute inset-0 bg-destructive/30 backdrop-blur-sm flex flex-col items-center justify-center hidden transition-all z-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white animate-bounce mb-3"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <p class="text-2xl font-black text-white tracking-widest drop-shadow-lg uppercase">Liveness Check</p>
+                        <p id="blinkWarningText" class="text-white font-medium drop-shadow-md mt-1">Please blink to verify...</p>
+                    </div>
                 </div>
-                <div id="statusIndicator" class="absolute top-8 right-8 px-3 py-1 rounded-full text-xs font-bold bg-secondary border border-border text-muted flex items-center gap-2">
+                
+                <div id="statusIndicator" class="absolute top-8 right-8 px-3 py-1 rounded-full text-xs font-bold bg-secondary border border-border text-muted flex items-center gap-2 z-20">
                     <div class="w-2 h-2 rounded-full bg-muted" id="statusDot"></div>
                     <span id="statusText">System Idle</span>
                 </div>
@@ -67,6 +76,8 @@
     </div>
 
     <script>
+        const loggedStudentsTracker = new Set();
+        
         const video = document.getElementById('videoElement');
         const canvas = document.getElementById('canvasElement');
         const toggleBtn = document.getElementById('toggleScanner');
@@ -76,11 +87,15 @@
         const statusText = document.getElementById('statusText');
         const statusDot = document.getElementById('statusDot');
         
+        // UI Elements for Liveness Overlay
+        const blinkWarning = document.getElementById('blinkWarning');
+        const blinkWarningText = document.getElementById('blinkWarningText');
+        
         const COURSE_ID = {{ course.id }}; 
         let isScanning = false;
         let scanInterval;
+        let isFirstFrame = false;
 
-        // Start webcam immediately
         navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { alert("Camera access denied or unavailable."); });
@@ -89,15 +104,19 @@
             if (!isScanning) {
                 isScanning = true;
                 btnText.innerText = "Stop Scanner";
+                isFirstFrame = true;
                 toggleBtn.classList.replace("bg-primary", "bg-destructive");
                 scannerLine.style.display = "block";
                 statusText.innerText = "Scanning Active";
                 statusDot.classList.replace("bg-muted", "bg-success");
                 statusDot.classList.add("animate-pulse");
                 logsContainer.innerHTML = ""; 
+                blinkWarning.classList.add('hidden');
                 
-                // Fire the AI every 3 seconds
-                scanInterval = setInterval(captureAndSendFrame, 3000);
+                loggedStudentsTracker.clear();
+                
+                // Fire rapidly (400ms) to catch the blink
+                scanInterval = setInterval(captureAndSendFrame, 400);
             } else {
                 isScanning = false;
                 btnText.innerText = "Start Scanning";
@@ -106,6 +125,7 @@
                 statusText.innerText = "System Idle";
                 statusDot.classList.replace("bg-success", "bg-muted");
                 statusDot.classList.remove("animate-pulse");
+                blinkWarning.classList.add('hidden');
                 clearInterval(scanInterval);
             }
         });
@@ -122,25 +142,48 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     course_id: COURSE_ID, 
-                    image: base64Image 
+                    image: base64Image,
+                    is_new_session: isFirstFrame
                 })
             })
+
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success' && data.recognized.length > 0) {
                     data.recognized.forEach(studentStatus => {
-                        const isNew = studentStatus.includes("Marked:");
-                        const name = studentStatus.split(":")[1].trim();
                         
-                        const logEntry = document.createElement("div");
-                        logEntry.className = `p-3 rounded-lg border text-sm font-medium flex justify-between items-center ${isNew ? 'bg-success/10 border-success/30 text-success' : 'bg-secondary border-border text-muted'}`;
-                        logEntry.innerHTML = `<span>${name}</span> <span class="text-xs ${isNew ? 'bg-success text-background' : 'bg-border text-muted'} px-2 py-1 rounded">${isNew ? 'Present' : 'Already Logged'}</span>`;
-                        
-                        logsContainer.prepend(logEntry);
+                        // 1. Check if they successfully passed the Liveness test
+                        if (studentStatus.startsWith("Marked:") || studentStatus.startsWith("Already Logged:")) {
+                            let name = studentStatus.split(":")[1].trim();
+                            blinkWarning.classList.add('hidden'); // Hide the red warning
+                            
+                            if (!loggedStudentsTracker.has(name)) {
+                                loggedStudentsTracker.add(name);
+                                const logEntry = document.createElement("div");
+                                logEntry.className = "p-3 rounded-lg border text-sm font-medium flex justify-between items-center bg-success/10 border-success/30 text-success";
+                                logEntry.innerHTML = `<span>${name}</span> <span class="text-xs bg-success text-background px-2 py-1 rounded">Present</span>`;
+                                logsContainer.prepend(logEntry);
+                            }
+                        } 
+                        // 2. The AI found a face, but they haven't blinked yet
+                        else if (studentStatus.startsWith("Please Blink:")) {
+                            let name = studentStatus.split(":")[1].trim();
+                            blinkWarningText.innerText = `${name}, please blink to verify!`;
+                            blinkWarning.classList.remove('hidden'); // Show the red warning overlay!
+                        } 
+                        // 3. The AI caught the blink, just waiting for eyes to open
+                        else if (studentStatus.startsWith("Waiting:")) {
+                            blinkWarningText.innerText = "Blink detected! Open eyes to finish...";
+                            blinkWarning.classList.remove('hidden');
+                        }
                     });
+                } else {
+                    // Hide warning if no faces are currently in frame
+                    blinkWarning.classList.add('hidden');
                 }
             })
             .catch(error => console.error('Error processing frame:', error));
+            isFirstFrame = false;
         }
     </script>
 </body>

@@ -6,8 +6,9 @@ import cv2
 import face_recognition
 import math
 from datetime import datetime
-
-
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
+import pytz
 
 # A global set to track which students have successfully blinked during a session
 # (In a real production app, this would go in a Redis cache or database)
@@ -39,7 +40,10 @@ def dashboard():
         
     # Get courses assigned specifically to this professor
     courses = Course.query.filter_by(faculty_id=session['user_id']).all()
-    today = datetime.now().strftime('%A, %b %d')
+    
+    # Force the dashboard to display the correct IST date
+    ist_timezone = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist_timezone).strftime('%A, %b %d')
     
     return render_template('faculty/dashboard.html', courses=courses, today=today)
 
@@ -122,11 +126,17 @@ def process_frame():
                 
             # 2. Are their eyes open (EAR > 0.25) AND have they already blinked?
             if avg_ear > 0.25 and matched_student_id in verified_live_users:
-                # Security passed! Check if they are already logged today
-                existing_log = AttendanceLog.query.filter_by(
-                    student_id=matched_student_id, 
-                    course_id=course.id, 
-                    date=datetime.now().date()
+                
+                # --- TIMEZONE FIX ---
+                # Fetch the exact IST calendar date
+                ist_timezone = pytz.timezone('Asia/Kolkata')
+                today_ist = datetime.now(ist_timezone).date()
+
+                # Check if they are already logged today using IST
+                existing_log = AttendanceLog.query.filter(
+                    AttendanceLog.student_id == matched_student_id,
+                    AttendanceLog.course_id == course.id,
+                    func.date(AttendanceLog.date) == today_ist 
                 ).first()
 
                 if not existing_log:
@@ -135,9 +145,17 @@ def process_frame():
                         course_id=course.id,
                         status='Present'
                     )
-                    db.session.add(new_log)
-                    db.session.commit()
-                    recognized_list.append(f"Marked: {matched_student_name}")
+                    
+                    # --- RACE CONDITION FIX ---
+                    # We try to add the log. If the database screams "DUPLICATE!" 
+                    # due to our UniqueConstraint, we catch the error gracefully.
+                    try:
+                        db.session.add(new_log)
+                        db.session.commit()
+                        recognized_list.append(f"Marked: {matched_student_name}")
+                    except IntegrityError:
+                        db.session.rollback() # Cancel the duplicate transaction
+                        recognized_list.append(f"Already Logged: {matched_student_name}")
                 else:
                     recognized_list.append(f"Already Logged: {matched_student_name}")
             else:
@@ -145,7 +163,6 @@ def process_frame():
 
     return jsonify({'status': 'success', 'recognized': recognized_list})
 
-from datetime import datetime
 
 @faculty_bp.route('/end_session/<int:course_id>')
 def end_session(course_id):
@@ -153,13 +170,21 @@ def end_session(course_id):
         return redirect(url_for('auth.login'))
 
     course = Course.query.get_or_404(course_id)
-    today = datetime.now().date()
+    
+    # --- TIMEZONE FIX FOR THE PASSIVE SWEEPER ---
+    ist_timezone = pytz.timezone('Asia/Kolkata')
+    today_ist = datetime.now(ist_timezone).date()
 
     # 1. Fetch EVERY student enrolled in this specific section
     enrolled_students = User.query.filter_by(role='student', class_name=course.target_section).all()
 
     # 2. Find everyone who was already marked 'Present' today
-    present_logs = AttendanceLog.query.filter_by(course_id=course_id, date=today, status='Present').all()
+    # Using func.date() ensures we accurately compare the calendar days
+    present_logs = AttendanceLog.query.filter(
+        AttendanceLog.course_id == course_id,
+        func.date(AttendanceLog.date) == today_ist,
+        AttendanceLog.status == 'Present'
+    ).all()
     
     # Extract just their IDs into a simple list for easy checking
     present_student_ids = [log.student_id for log in present_logs]
@@ -170,8 +195,11 @@ def end_session(course_id):
         if student.id not in present_student_ids:
             
             # Double check an 'Absent' log doesn't already exist so we don't duplicate
-            existing_absent = AttendanceLog.query.filter_by(
-                student_id=student.id, course_id=course_id, date=today, status='Absent'
+            existing_absent = AttendanceLog.query.filter(
+                AttendanceLog.student_id == student.id,
+                AttendanceLog.course_id == course_id,
+                func.date(AttendanceLog.date) == today_ist,
+                AttendanceLog.status == 'Absent'
             ).first()
             
             if not existing_absent:
@@ -180,10 +208,14 @@ def end_session(course_id):
                     course_id=course_id,
                     status='Absent'
                 )
-                db.session.add(new_log)
-                absent_count += 1
+                
+                try:
+                    db.session.add(new_log)
+                    db.session.commit()
+                    absent_count += 1
+                except IntegrityError:
+                    db.session.rollback()
 
-    db.session.commit()
     flash(f'Session closed securely. {absent_count} unscanned students were marked Absent.', 'success')
     
     return redirect(url_for('faculty.dashboard'))
